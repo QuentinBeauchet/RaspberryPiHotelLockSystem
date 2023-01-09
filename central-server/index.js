@@ -11,15 +11,14 @@ app.use(cors());
 const floors = JSON.parse(fs.readFileSync(`../floors.json`));
 const doors = JSON.parse(fs.readFileSync(`../doors.json`));
 
-app.get("/api/:door/:status", (req, res) => {
-  const door = doors[req.params.door];
+app.get("/api/update", (req, res) => {
+  const door = doors[req.query.door];
   if (!door) {
     res.sendStatus(404);
     return;
   }
 
-  const { address, port } = floors[door.floor];
-  fetch(`${address}:${port}/api/${door.id}/${req.params.status}`)
+  fetch(`${floors[door.floor].address}/api/update?door=${door.id}&status=${req.query.status}`)
     .then((res) => res.text())
     .then((text) => res.send(text))
     .catch((err) => res.send(err.message));

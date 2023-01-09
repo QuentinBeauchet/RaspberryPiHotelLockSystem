@@ -5,10 +5,10 @@
   },
   "1-2": {
     "floor": 1,
-    "id": 1
+    "id": 2
   },
   "Conference room": {
     "floor": 2,
-    "id": 5
+    "id": 1
   }
 }
