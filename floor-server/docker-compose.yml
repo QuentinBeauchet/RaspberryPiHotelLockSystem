@@ -11,6 +11,7 @@ services:
       MYSQL_DATABASE: "floor"
     volumes:
       - "floor_server_data:/var/lib/mysql"
+      - "./floor.sql:/docker-entrypoint-initdb.d/floor.sql"
 
   phpmyadmin:
     image: "phpmyadmin/phpmyadmin"
