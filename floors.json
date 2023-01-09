@@ -1,0 +1,20 @@
+{
+  "1": {
+    "port": 3001,
+    "address": "http://localhost",
+    "doors": {
+      "1": "http://localhost:3010",
+      "2": "http://localhost:3011",
+      "3": "http://localhost:3012"
+    }
+  },
+  "2": {
+    "port": 3002,
+    "address": "http:localhost",
+    "doors": {
+      "1": "http://localhost:3010",
+      "2": "http://localhost:3011",
+      "3": "http://localhost:3012"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "1-1": {
+    "floor": 1,
+    "id": 1
+  },
+  "1-2": {
+    "floor": 1,
+    "id": 1
+  },
+  "Conference room": {
+    "floor": 2,
+    "id": 5
+  }
+}
