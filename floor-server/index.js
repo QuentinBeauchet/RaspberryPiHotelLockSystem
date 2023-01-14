@@ -31,7 +31,16 @@ app.get("/api/update", (req, res) => {
   res.send(`<h1>Floor: ${process.env.FLOOR}<h1><h2>Door: ${req.query.door}</h2><h3>Status: ${req.query.status}</h3>`);
 });
 
-app.get("/api/picture", (req, res) => {
+app.get("/api/user", (req, res) => {
+  const pool = mariadb.createPool({
+    host: "127.0.0.1",
+    user: "root",
+    password: "root",
+    port: 3306,
+    database: "floor",
+    connectionLimit: 5,
+  });
+
   pool.getConnection().then((conn) => {
     conn
       .query(`SELECT * FROM \`users\` WHERE rfid="${req.query.rfid}"`)
@@ -39,7 +48,8 @@ app.get("/api/picture", (req, res) => {
         if (!rows.length) {
           res.sendStatus(404);
         }
-        res.send(rows[0].picture);
+        res.send(rows[0]);
+        conn.end();
       })
       .catch((err) => {
         console.log(err);
