@@ -3,12 +3,9 @@ import cv2
 import numpy as np
 import face_recognition
 import requests
+import sys
 import nfc
 from nfc.clf import RemoteTarget
-
-clf = nfc.ContactlessFrontend()
-
-API_URL = "http://localhost:3000/api"
 
 
 def encode_image(current_image):
@@ -51,7 +48,7 @@ def getRFIDIdentifier():
 
 
 def fetch_user(tag):
-    response = requests.get(f'{API_URL}/user?rfid={tag}')
+    response = requests.get(f'{API_URL}/user?rfid={tag}&door_id={DOOR_ID}')
     if (response.status_code != 200):
         return None
 
@@ -63,9 +60,10 @@ def fetch_user(tag):
 
 
 def main():
+    print("Waiting for RFID contact")
     while True:
-        # tag = getRFIDIdentifier()
-        tag = input("Enter Your Badge: ")
+        tag = getRFIDIdentifier()
+        #tag = input("Enter Your Badge: ")
 
         if tag is None:
             time.sleep(1)
@@ -88,6 +86,18 @@ def main():
                 else:
                     print("No Match Found")
 
+        print("Waiting for RFID contact")
+
 
 if __name__ == '__main__':
+    if (len(sys.argv) < 2):
+        print("Missing DOOR_ID: python Multifactor_Authentication.py DOOR_ID")
+        sys.exit(1)
+
+    API_URL = "http://localhost:3000/api"
+    DOOR_ID = sys.argv[1]
+
+    clf = nfc.ContactlessFrontend()
+    assert clf.open("usb:04e6:5591") is True
+
     main()

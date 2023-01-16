@@ -32,18 +32,16 @@ app.get("/api/update", (req, res) => {
 });
 
 app.get("/api/user", (req, res) => {
-  const pool = mariadb.createPool({
-    host: "127.0.0.1",
-    user: "root",
-    password: "root",
-    port: 3306,
-    database: "floor",
-    connectionLimit: 5,
-  });
-
   pool.getConnection().then((conn) => {
     conn
-      .query(`SELECT * FROM \`users\` WHERE rfid="${req.query.rfid}"`)
+      .query(
+        `SELECT DISTINCT users.*
+      FROM users
+      JOIN \`user permissions\` ON users.id = \`user permissions\`.\`user id\`
+      JOIN \`door permissions\`
+      JOIN doors
+      WHERE users.rfid = '${req.query.rfid}' AND \`door permissions\`.\`door id\` = '${req.query.door_id}' AND \`user permissions\`.\`permission id\` = \`door permissions\`.\`permission id\`;`
+      )
       .then((rows) => {
         if (!rows.length) {
           res.sendStatus(404);
