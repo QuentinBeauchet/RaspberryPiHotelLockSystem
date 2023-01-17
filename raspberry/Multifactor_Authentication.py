@@ -53,7 +53,7 @@ def getRFIDIdentifier():
     return identifier
 
 
-def fetch_user(tag):
+def fetch_user(tag, DOOR_ID):
     response = requests.get(f'{API_URL}/user?rfid={tag}&door_id={DOOR_ID}')
     if (response.status_code != 200):
         return None
@@ -65,7 +65,7 @@ def fetch_user(tag):
             "picture": cv2.imdecode(np.fromiter(user["picture"]["data"], np.uint8), cv2.IMREAD_COLOR)}
 
 
-def check_door_status():
+def check_door_status(DOOR_ID):
     response = requests.get(f'{API_URL}/status?door_id={DOOR_ID}')
     if (response.status_code != 200):
         return None
@@ -74,10 +74,10 @@ def check_door_status():
     return status["status"].lower() == "true"
 
 
-def run_door_multifactor_authentication():
+def run_door_multifactor_authentication(DOOR_ID):
     print("Waiting for RFID contact")
     while True:
-        if check_door_status():
+        if check_door_status(DOOR_ID):
             print("Admin Opening the Door.")
         else:
             tag = getRFIDIdentifier()
@@ -90,7 +90,7 @@ def run_door_multifactor_authentication():
             if tag.lower() == "exit":
                 break
 
-            user = fetch_user(tag)
+            user = fetch_user(tag, DOOR_ID)
 
             if user is None:
                 print("No Match Found in the database")
@@ -117,11 +117,6 @@ if __name__ == '__main__':
     if (len(sys.argv) < 2):
         print("Missing DOOR_ID: python Multifactor_Authentication.py DOOR_ID")
         sys.exit(1)
-
-    API_URL = "http://localhost:3000/api"
+        
     DOOR_ID = sys.argv[1]
-
-    clf = nfc.ContactlessFrontend()
-    assert clf.open("usb:04e6:5591") is True
-
-    run_door_multifactor_authentication()
+    run_door_multifactor_authentication(DOOR_ID)
