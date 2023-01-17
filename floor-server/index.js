@@ -38,12 +38,16 @@ app.get("/api/user", (req, res) => {
   pool.getConnection().then((conn) => {
     conn
       .query(
-        `SELECT DISTINCT users.*
+        req.query.door_id != undefined
+          ? `SELECT DISTINCT users.*
       FROM users
       JOIN \`user permissions\` ON users.rfid = \`user permissions\`.\`user rfid\`
       JOIN \`door permissions\`
       JOIN doors
       WHERE users.rfid = '${req.query.rfid}' AND \`door permissions\`.\`door id\` = '${req.query.door_id}' AND \`user permissions\`.\`permission id\` = \`door permissions\`.\`permission id\`;`
+          : `SELECT *
+       FROM users
+       WHERE users.rfid = '${req.query.rfid}'`
       )
       .then((rows) => {
         rows.length ? res.send(rows[0]) : res.sendStatus(404);
@@ -57,12 +61,11 @@ app.get("/api/user", (req, res) => {
 });
 
 app.post("/api/user/add", (req, res) => {
-  buf = Buffer.from(req.body.picture).toString("base64");
   pool.getConnection().then((conn) => {
     conn
       .query(
         `INSERT INTO \`users\` ( \`rfid\`,\`first name\`, \`last name\`, \`picture\`) VALUES
-        ('${req.body.rfid}', '${req.body["first name"]}',  '${req.body["last name"]}',  '${buf}');`
+        ('${req.body.rfid}', '${req.body["first name"]}',  '${req.body["last name"]}',  0x${req.body.picture});`
       )
       .then(() => {
         res.sendStatus(200);
