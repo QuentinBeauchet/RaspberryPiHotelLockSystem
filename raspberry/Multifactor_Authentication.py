@@ -8,6 +8,8 @@ import nfc
 import sys
 from nfc.clf import RemoteTarget
 
+# command to run on a separet shell to establish the bluetooth connection:
+#                       sudo rfcomm connect hci0 98:D3:51:F9:46:0D 1
 ser = serial.Serial("/dev/rfcomm0", 9600)
 clf = nfc.ContactlessFrontend()
 assert clf.open('usb:04e6:5591') is True
