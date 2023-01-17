@@ -7,6 +7,7 @@ import nfc
 import sys
 from nfc.clf import RemoteTarget
 
+ser = serial.Serial("/dev/rfcomm0", 9600)
 clf = nfc.ContactlessFrontend()
 assert clf.open('usb:04e6:5591') is True
 
@@ -97,8 +98,15 @@ def run_door_multifactor_authentication(door_id):
                 if encodings is not None:
                     matching_image = recognition(encodings)
                     if matching_image:
-                        print(user["name"]])
+                        print(user["name"])
                         print("Door Opens")
+
+                        ser.write(b"1")                 # Send Signal to open the door
+                        while ser.inWaiting() == 0:
+                            pass                        # Wait 5 seconds for the door to close 
+                        data = ser.readline().decode()
+                        if(data[:-1] == "0"):
+                            print("Door Locked")
                     else:
                         print("No Match Found")
 
