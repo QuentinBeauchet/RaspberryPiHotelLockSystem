@@ -1,4 +1,5 @@
 import time
+import serial
 import cv2
 import numpy as np
 import face_recognition
@@ -74,12 +75,22 @@ def check_door_status(DOOR_ID):
     return status["status"].lower() == "true"
 
 
+def open_door():
+    ser.write(b"1")                 # Send Signal to open the door
+    while ser.inWaiting() == 0:
+        pass                        # Wait 5 seconds for the door to close 
+    data = ser.readline().decode()
+    if(data[:-1] == "0"):
+        print("Door Locked")
+
+
 def run_door_multifactor_authentication(DOOR_ID):
-    print("Waiting for RFID contact")
     while True:
         if check_door_status(DOOR_ID):
             print("Admin Opening the Door.")
+            open_door()
         else:
+            print("Waiting for RFID contact")
             tag = getRFIDIdentifier()
             # tag = input("Enter Your Badge: ")
 
@@ -101,16 +112,9 @@ def run_door_multifactor_authentication(DOOR_ID):
                     if matching_image:
                         print(user["name"])
                         print("Door Opens")
-
-                        ser.write(b"1")                 # Send Signal to open the door
-                        while ser.inWaiting() == 0:
-                            pass                        # Wait 5 seconds for the door to close 
-                        data = ser.readline().decode()
-                        if(data[:-1] == "0"):
-                            print("Door Locked")
+                        open_door()
                     else:
                         print("No Match Found")
-        print("Waiting for RFID contact")
 
 
 if __name__ == '__main__':
