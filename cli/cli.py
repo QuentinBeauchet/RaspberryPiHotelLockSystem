@@ -4,7 +4,6 @@ import numpy as np
 import face_recognition
 import requests
 import nfc
-import base64
 from nfc.clf import RemoteTarget
 
 
