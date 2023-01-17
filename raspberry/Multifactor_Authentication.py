@@ -3,9 +3,14 @@ import cv2
 import numpy as np
 import face_recognition
 import requests
-import sys
 import nfc
+import sys
 from nfc.clf import RemoteTarget
+
+clf = nfc.ContactlessFrontend()
+assert clf.open('usb:04e6:5591') is True
+
+API_URL = "http://localhost:3000/api"
 
 
 def encode_image(current_image):
@@ -47,8 +52,8 @@ def getRFIDIdentifier():
     return identifier
 
 
-def fetch_user(tag):
-    response = requests.get(f'{API_URL}/user?rfid={tag}&door_id={DOOR_ID}')
+def fetch_user(tag, door_id):
+    response = requests.get(f'{API_URL}/user?rfid={tag}&door_id={door_id}')
     if (response.status_code != 200):
         return None
 
@@ -59,45 +64,51 @@ def fetch_user(tag):
             "picture": cv2.imdecode(np.fromiter(user["picture"]["data"], np.uint8), cv2.IMREAD_COLOR)}
 
 
-def main():
-    print("Waiting for RFID contact")
+def check_door_status(door_id):
+    response = requests.get(f'{API_URL}/status?door_id={door_id}')
+    if (response.status_code != 200):
+        return None
+
+    status = response.json()
+    return status["status"].lower() == "true"
+
+
+def run_door_multifactor_authentication(door_id):
     while True:
-        tag = getRFIDIdentifier()
-        #tag = input("Enter Your Badge: ")
-
-        if tag is None:
-            time.sleep(1)
-            continue
-
-        if tag.lower() == "exit":
-            break
-
-        user = fetch_user(tag)
-
-        if user is None:
-            print("No Match Found in the database")
+        if check_door_status(door_id):
+            print("Admin Opening the Door.")  
         else:
-            encodings = encode_image(user["picture"])
-            if encodings is not None:
-                matching_image = recognition(encodings)
-                if matching_image:
-                    # print(fetched_data[1])
-                    print("Door Opens")
-                else:
-                    print("No Match Found")
+            tag = getRFIDIdentifier()
+            # tag = input("Enter Your Badge: ")
 
-        print("Waiting for RFID contact")
+            if tag is None:
+                time.sleep(1)
+                continue
+
+            if tag.lower() == "exit":
+                break
+
+            user = fetch_user(tag, door_id)
+
+            if user is None:
+                print("No Match Found in the database")
+            else:
+                encodings = encode_image(user["picture"])
+                if encodings is not None:
+                    matching_image = recognition(encodings)
+                    if matching_image:
+                        print(user["name"]])
+                        print("Door Opens")
+                    else:
+                        print("No Match Found")
+
+
+def main():
+    if(len(sys.argv) != 2):
+        print("Please specify the door ID")
+    else:
+        run_door_multifactor_authentication(sys.argv[1])
 
 
 if __name__ == '__main__':
-    if (len(sys.argv) < 2):
-        print("Missing DOOR_ID: python Multifactor_Authentication.py DOOR_ID")
-        sys.exit(1)
-
-    API_URL = "http://localhost:3000/api"
-    DOOR_ID = sys.argv[1]
-
-    clf = nfc.ContactlessFrontend()
-    assert clf.open("usb:04e6:5591") is True
-
     main()
