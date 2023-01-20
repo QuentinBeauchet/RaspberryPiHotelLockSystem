@@ -6,6 +6,7 @@ import face_recognition
 import requests
 import nfc
 import sys
+import re
 from nfc.clf import RemoteTarget
 
 # command to run on a separet shell to establish the bluetooth connection:
@@ -17,17 +18,13 @@ assert clf.open('usb:04e6:5591') is True
 API_URL = "http://localhost:3000/api"
 
 
-def encode_image(current_image):
-    encoded_image = face_recognition.face_encodings(
-        cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB))[0]
-    return encoded_image
-
-
 def recognition(encoded_image):
     for i in range(5):
+        print("Taking Picture, try", (i + 1))
         cap = cv2.VideoCapture(0)
         success, image, = cap.read()
         cap.release()
+        print("Picture", (i + 1), "taken.")
         img_resized = cv2.resize(image, (0, 0), None, 0.25, 0.25)
         img_resized = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
 
@@ -62,10 +59,10 @@ def fetch_user(tag, DOOR_ID):
         return None
 
     user = response.json()
-
+    np.array(list(filter(bool, re.split(r'\s', user[1][1:-1]))), dtype='float')
     return {"rfid": user["rfid"],
             "name": f'{user["first name"]}_{user["last name"]}',
-            "picture": cv2.imdecode(np.fromiter(user["picture"]["data"], np.uint8), cv2.IMREAD_COLOR)}
+            "picture": np.array(list(filter(bool, re.split(r'\s', user["picture"][1:-1]))), dtype='float')}
 
 
 def check_door_status(DOOR_ID):
@@ -97,7 +94,7 @@ def run_door_multifactor_authentication(DOOR_ID):
             # tag = input("Enter Your Badge: ")
 
             if tag is None:
-                time.sleep(1)
+                time.sleep(0.5)
                 continue
 
             if tag.lower() == "exit":
@@ -108,7 +105,7 @@ def run_door_multifactor_authentication(DOOR_ID):
             if user is None:
                 print("No Match Found in the database")
             else:
-                encodings = encode_image(user["picture"])
+                encodings = user["picture"]
                 if encodings is not None:
                     matching_image = recognition(encodings)
                     if matching_image:
