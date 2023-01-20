@@ -1,4 +1,5 @@
 import time
+import serial
 import cv2
 import numpy as np
 import face_recognition
@@ -7,6 +8,9 @@ import nfc
 import sys
 from nfc.clf import RemoteTarget
 
+# command to run on a separet shell to establish the bluetooth connection:
+#                       sudo rfcomm connect hci0 98:D3:51:F9:46:0D 1
+ser = serial.Serial("/dev/rfcomm0", 9600)
 clf = nfc.ContactlessFrontend()
 assert clf.open('usb:04e6:5591') is True
 
@@ -95,7 +99,13 @@ def get_admins_tags():
 
 
 def open_door():
-    print("Door Opens")
+    print("Opens door")
+    ser.write(b"1")                 # Send Signal to open the door
+    while ser.inWaiting() == 0:
+        pass                        # Wait 5 seconds for the door to close
+    data = ser.readline().decode()
+    if (data[:-1] == "0"):
+        print("Door Locked")
 
 
 def run_door_multifactor_authentication():
@@ -107,6 +117,7 @@ def run_door_multifactor_authentication():
             print("Admin Opening the Door from API")
             open_door()
         else:
+            print("Waiting for RFID contact")
             tag = getRFIDIdentifier()
 
             if tag is None:
@@ -136,7 +147,6 @@ def run_door_multifactor_authentication():
                         open_door()
                     else:
                         print("No Match Found")
-        print("Waiting for RFID contact")
 
 
 if __name__ == '__main__':
@@ -144,10 +154,5 @@ if __name__ == '__main__':
         print("Missing DOOR_ID: python Multifactor_Authentication.py DOOR_ID")
         sys.exit(1)
 
-    API_URL = "http://localhost:3000/api"
     DOOR_ID = sys.argv[1]
-
-    clf = nfc.ContactlessFrontend()
-    assert clf.open("usb:04e6:5591") is True
-
-    run_door_multifactor_authentication()
+    run_door_multifactor_authentication(DOOR_ID)
