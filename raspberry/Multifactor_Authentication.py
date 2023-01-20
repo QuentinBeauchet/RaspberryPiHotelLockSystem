@@ -9,14 +9,6 @@ import sys
 import re
 from nfc.clf import RemoteTarget
 
-# command to run on a separet shell to establish the bluetooth connection:
-#                       sudo rfcomm connect hci0 98:D3:51:F9:46:0D 1
-ser = serial.Serial("/dev/rfcomm0", 9600)
-clf = nfc.ContactlessFrontend()
-assert clf.open('usb:04e6:5591') is True
-
-API_URL = "http://localhost:3000/api"
-
 
 def recognition(encoded_image):
     for i in range(5):
@@ -53,8 +45,12 @@ def getRFIDIdentifier():
     return identifier
 
 
-def fetch_user(tag, DOOR_ID):
-    response = requests.get(f'{API_URL}/user?rfid={tag}&door_id={DOOR_ID}')
+def fetch_user(tag):
+    try:
+        response = requests.get(f'{API_URL}/user?rfid={tag}&door_id={DOOR_ID}')
+    except requests.exceptions.ConnectionError:
+        return None
+
     if (response.status_code != 200):
         return None
 
@@ -65,33 +61,55 @@ def fetch_user(tag, DOOR_ID):
             "picture": np.array(list(filter(bool, re.split(r'\s', user["picture"][1:-1]))), dtype='float')}
 
 
-def check_door_status(DOOR_ID):
-    response = requests.get(f'{API_URL}/status?door_id={DOOR_ID}')
+def check_door_status():
+    try:
+        response = requests.get(f'{API_URL}/status?door_id={DOOR_ID}')
+    except requests.exceptions.ConnectionError:
+        return False
+
     if (response.status_code != 200):
-        return None
+        return False
 
     status = response.json()
-    return status["status"].lower() == "true"
+
+    return status["status"]
+
+
+def get_admins_tags():
+    try:
+        response = requests.get(f'{API_URL}/admins')
+    except requests.exceptions.ConnectionError:
+        return []
+
+    if (response.status_code != 200):
+        return []
+
+    admins = response.json()
+
+    return [user["rfid"] for user in admins]
 
 
 def open_door():
-    ser.write(b"1")                 # Send Signal to open the door
-    while ser.inWaiting() == 0:
-        pass                        # Wait 5 seconds for the door to close 
-    data = ser.readline().decode()
-    if(data[:-1] == "0"):
-        print("Door Locked")
+    print("Opens door")
+    if ARDUINO_SERIAL is not None:
+        ARDUINO_SERIAL.write(b"1")      # Send Signal to open the door
+        while ARDUINO_SERIAL.inWaiting() == 0:
+            pass                        # Wait 5 seconds for the door to close
+        data = ARDUINO_SERIAL.readline().decode()
+        if (data[:-1] == "0"):
+            print("Door Locked")
 
 
-def run_door_multifactor_authentication(DOOR_ID):
+def run_door_multifactor_authentication():
+    ADMINS = get_admins_tags()
+    print("Waiting for RFID contact")
     while True:
-        if check_door_status(DOOR_ID):
-            print("Admin Opening the Door.")
+        if check_door_status():
+            print(
+                f'{COLOR["GREEN"]}=> Admin Opening the Door from API{COLOR["RESET"]}')
             open_door()
         else:
-            print("Waiting for RFID contact")
             tag = getRFIDIdentifier()
-            # tag = input("Enter Your Badge: ")
 
             if tag is None:
                 time.sleep(0.5)
@@ -100,26 +118,58 @@ def run_door_multifactor_authentication(DOOR_ID):
             if tag.lower() == "exit":
                 break
 
-            user = fetch_user(tag, DOOR_ID)
+            print(f'{COLOR["BLUE"]}RFID: {tag}{COLOR["RESET"]}')
+
+            if tag in ADMINS:
+                print(
+                    f'{COLOR["GREEN"]}=> Admin Opening the Door manually{COLOR["RESET"]}')
+                open_door()
+                continue
+
+            user = fetch_user(tag)
 
             if user is None:
-                print("No Match Found in the database")
+                print(
+                    f'{COLOR["RED"]}=> No Match Found in the database{COLOR["RESET"]}')
             else:
                 encodings = user["picture"]
                 if encodings is not None:
                     matching_image = recognition(encodings)
                     if matching_image:
-                        print(user["name"])
-                        print("Door Opens")
+                        print(
+                            f'{COLOR["GREEN"]}=> Detected: {user["name"]}{COLOR["RESET"]}')
+                        "Opens door"
                         open_door()
                     else:
-                        print("No Match Found")
+                        print(
+                            f'{COLOR["RED"]}=> User does not match{COLOR["RESET"]}')
+        print("Waiting for RFID contact")
 
 
 if __name__ == '__main__':
     if (len(sys.argv) < 2):
         print("Missing DOOR_ID: python Multifactor_Authentication.py DOOR_ID")
         sys.exit(1)
-        
+
+    COLOR = {"GREEN": "\033[92m", "RED": "\033[91m",
+             "BLUE": "\033[94m", "RESET": "\033[0m"}
+
+    ARDUINO_SERIAL = None
+    try:
+        # command to run on a separet shell to establish the bluetooth connection:
+        # sudo rfcomm connect hci0 98:D3:51:F9:46:0D 1
+        ARDUINO_SERIAL = serial.Serial("/dev/rfcomm0", 9600)
+    except serial.serialutil.SerialException:
+        print("Bluetooth is not connected to serial port")
+
+    try:
+        clf = nfc.ContactlessFrontend()
+        assert clf.open('usb:04e6:5591') is True
+    except:
+        print("USB RFID detector not found")
+        sys.exit(1)
+
     DOOR_ID = sys.argv[1]
-    run_door_multifactor_authentication(DOOR_ID)
+    API_URL = "http://localhost:3000/api"
+
+    run_door_multifactor_authentication()

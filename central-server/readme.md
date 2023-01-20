@@ -12,6 +12,6 @@ npm start
 
 # Routes
 
-> /api/update?door=`...`&status=`...`
+> /api/update?door=`...`
 
-Change the status of a lock to `open` or `close` using the door `name`
+Open the door with the name `door`.
