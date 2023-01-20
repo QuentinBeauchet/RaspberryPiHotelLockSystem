@@ -7,9 +7,9 @@ var app = express();
 const port = process.env.PORT;
 
 const doors = {
-  1: "http://localhost:3010",
-  2: "http://localhost:3011",
-  3: "http://localhost:3012",
+  1: false,
+  2: false,
+  3: false,
 };
 
 app.use(bodyParser.json());
@@ -25,13 +25,24 @@ const pool = mariadb.createPool({
   connectionLimit: 5,
 });
 
-app.get("/api/update", (req, res) => {
-  const door = doors[req.query.door];
-  if (!door || !["open", "close"].includes(req.query.status)) {
+app.get("/api/open", (req, res) => {
+  const door = doors[req.query.door_id];
+  if (door == undefined) {
     res.sendStatus(404);
     return;
   }
-  res.send(`<h1>Floor: ${process.env.FLOOR}<h1><h2>Door: ${req.query.door}</h2><h3>Status: ${req.query.status}</h3>`);
+  doors[req.query.door] = true;
+  res.send("<h1>Door is Open</h1>");
+});
+
+app.get("/api/status", (req, res) => {
+  const door = doors[req.query.door];
+  if (door == undefined) {
+    res.sendStatus(404);
+    return;
+  }
+  res.send({ status: door });
+  doors[req.query.door] = false;
 });
 
 app.get("/api/user", (req, res) => {
@@ -69,6 +80,27 @@ app.post("/api/user/add", (req, res) => {
       )
       .then(() => {
         res.sendStatus(200);
+        conn.end();
+      })
+      .catch((err) => {
+        console.log(err);
+        conn.end();
+      });
+  });
+});
+
+app.get("/api/admins", (req, res) => {
+  pool.getConnection().then((conn) => {
+    conn
+      .query(
+        `SELECT users.rfid
+        FROM users
+        JOIN \`user permissions\` ON users.rfid = \`user permissions\`.\`user rfid\`
+        JOIN permissions ON \`user permissions\`.\`permission id\` = permissions.id
+        WHERE permissions.type = "ADMIN";`
+      )
+      .then((rows) => {
+        res.send(rows);
         conn.end();
       })
       .catch((err) => {

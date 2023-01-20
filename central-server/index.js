@@ -1,27 +1,42 @@
 const express = require("express");
 var cors = require("cors");
 const fetch = require("node-fetch");
-const fs = require("fs");
 var app = express();
 
-const port = 3000;
+const port = 5000;
 
 app.use(cors());
 
-const floors = JSON.parse(fs.readFileSync(`../floors.json`));
-const doors = JSON.parse(fs.readFileSync(`../doors.json`));
+const floors = {
+  1: "http://localhost:3000",
+  2: "http:localhost:3001",
+};
+const doors = {
+  "Conference room": {
+    floor: 1,
+    id: 1,
+  },
+  Toilets: {
+    floor: 1,
+    id: 2,
+  },
+  "Learning center": {
+    floor: 2,
+    id: 1,
+  },
+};
 
-app.get("/api/update", (req, res) => {
+app.get("/api/open", (req, res) => {
   const door = doors[req.query.door];
   if (!door) {
     res.sendStatus(404);
     return;
   }
 
-  fetch(`${floors[door.floor].address}/api/update?door=${door.id}&status=${req.query.status}`)
+  fetch(`${floors[door.floor]}/api/open?door_id=${door.id}`)
     .then((res) => res.text())
     .then((text) => res.send(text))
-    .catch((err) => res.send(err.message));
+    .catch(() => res.send("<h1>Floor server unavalaible</h1>"));
 });
 
 app.listen(port, () => {

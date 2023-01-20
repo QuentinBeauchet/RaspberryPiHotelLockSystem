@@ -10,8 +10,6 @@ from nfc.clf import RemoteTarget
 clf = nfc.ContactlessFrontend()
 assert clf.open('usb:04e6:5591') is True
 
-API_URL = "http://localhost:3000/api"
-
 
 def encode_image(current_image):
     encoded_image = face_recognition.face_encodings(
@@ -53,7 +51,11 @@ def getRFIDIdentifier():
 
 
 def fetch_user(tag):
-    response = requests.get(f'{API_URL}/user?rfid={tag}&door_id={DOOR_ID}')
+    try:
+        response = requests.get(f'{API_URL}/user?rfid={tag}&door_id={DOOR_ID}')
+    except requests.exceptions.ConnectionError:
+        return None
+
     if (response.status_code != 200):
         return None
 
@@ -65,22 +67,47 @@ def fetch_user(tag):
 
 
 def check_door_status():
-    response = requests.get(f'{API_URL}/status?door_id={DOOR_ID}')
+    try:
+        response = requests.get(f'{API_URL}/status?door_id={DOOR_ID}')
+    except requests.exceptions.ConnectionError:
+        return False
+
     if (response.status_code != 200):
-        return None
+        return False
 
     status = response.json()
-    return status["status"].lower() == "true"
+
+    return status["status"]
+
+
+def get_admins_tags():
+    try:
+        response = requests.get(f'{API_URL}/admins')
+    except requests.exceptions.ConnectionError:
+        return []
+
+    if (response.status_code != 200):
+        return []
+
+    admins = response.json()
+
+    return [user["rfid"] for user in admins]
+
+
+def open_door():
+    print("Door Opens")
 
 
 def run_door_multifactor_authentication():
+    ADMINS = get_admins_tags()
+    print(ADMINS)
     print("Waiting for RFID contact")
     while True:
         if check_door_status():
-            print("Admin Opening the Door.")
+            print("Admin Opening the Door from API")
+            open_door()
         else:
             tag = getRFIDIdentifier()
-            # tag = input("Enter Your Badge: ")
 
             if tag is None:
                 time.sleep(1)
@@ -88,6 +115,13 @@ def run_door_multifactor_authentication():
 
             if tag.lower() == "exit":
                 break
+
+            print(tag)
+
+            if tag in ADMINS:
+                print("Admin Opening the Door manually")
+                open_door()
+                continue
 
             user = fetch_user(tag)
 
@@ -99,7 +133,7 @@ def run_door_multifactor_authentication():
                     matching_image = recognition(encodings)
                     if matching_image:
                         print(user["name"])
-                        print("Door Opens")
+                        open_door()
                     else:
                         print("No Match Found")
         print("Waiting for RFID contact")
