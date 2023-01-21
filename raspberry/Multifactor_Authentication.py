@@ -12,11 +12,10 @@ from nfc.clf import RemoteTarget
 
 def recognition(encoded_image):
     for i in range(5):
-        print("Taking Picture, try", (i + 1))
+        print(f"Taking Picture, try n°{i+1}")
         cap = cv2.VideoCapture(0)
         success, image, = cap.read()
         cap.release()
-        print("Picture", (i + 1), "taken.")
         img_resized = cv2.resize(image, (0, 0), None, 0.25, 0.25)
         img_resized = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
 
@@ -34,11 +33,13 @@ def recognition(encoded_image):
 
 
 def getRFIDIdentifier():
-    target = clf.sense(RemoteTarget('106A'), RemoteTarget(
+    if CLF is None:
+        return input("No RFID detection avalaible, type the RFID manually: ")
+    target = CLF.sense(RemoteTarget('106A'), RemoteTarget(
         '106B'), RemoteTarget('212F'))
     identifier = None
     if target is not None:
-        rfid_tag = nfc.tag.activate(clf, target)
+        rfid_tag = nfc.tag.activate(CLF, target)
         identifier = rfid_tag.identifier.hex()
 
     time.sleep(1)
@@ -55,10 +56,10 @@ def fetch_user(tag):
         return None
 
     user = response.json()
-    np.array(list(filter(bool, re.split(r'\s', user[1][1:-1]))), dtype='float')
+
     return {"rfid": user["rfid"],
             "name": f'{user["first name"]}_{user["last name"]}',
-            "picture": np.array(list(filter(bool, re.split(r'\s', user["picture"][1:-1]))), dtype='float')}
+            "picture": np.frombuffer(bytes(user["picture"]["data"]))}
 
 
 def check_door_status():
@@ -162,12 +163,13 @@ if __name__ == '__main__':
     except serial.serialutil.SerialException:
         print("Bluetooth is not connected to serial port")
 
+    CLF = None
     try:
-        clf = nfc.ContactlessFrontend()
-        assert clf.open('usb:04e6:5591') is True
+        CLF = nfc.ContactlessFrontend()
+        assert CLF.open('usb:04e6:5591') is True
     except:
+        CLF = None
         print("USB RFID detector not found")
-        sys.exit(1)
 
     DOOR_ID = sys.argv[1]
     API_URL = "http://localhost:3000/api"

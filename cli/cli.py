@@ -7,10 +7,11 @@ import nfc
 from nfc.clf import RemoteTarget
 
 
-def encode_image(current_image):
-    encoded_image = face_recognition.face_encodings(
-        cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB))[0]
-    return encoded_image
+def encodeImage(current_image):
+    encoding = face_recognition.face_encodings(
+        cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB))[0].tobytes()
+
+    return "".join([hex(x)[2:].zfill(2) for x in encoding])
 
 
 def take_picture():
@@ -21,30 +22,16 @@ def take_picture():
     return img_resized
 
 
-def recognition(encoded_image):
-    for i in range(5):
-        img_resized = take_picture()
-
-        encode_face = face_recognition.face_encodings(img_resized)
-        if len(encode_face) != 0:
-            matches = face_recognition.compare_faces(
-                encoded_image, encode_face, 0.5)
-            face_dis = face_recognition.face_distance(
-                encoded_image, encode_face)
-            match_index = np.argmin(face_dis)
-
-            if matches[match_index]:
-                return True
-    return False
-
-
 def getRFIDIdentifier():
     while (True):
-        target = clf.sense(RemoteTarget('106A'), RemoteTarget(
+        if CLF is None:
+            return input("No RFID detection avalaible, type the RFID manually: ")
+
+        target = CLF.sense(RemoteTarget('106A'), RemoteTarget(
             '106B'), RemoteTarget('212F'))
 
         if target is not None:
-            rfid_tag = nfc.tag.activate(clf, target)
+            rfid_tag = nfc.tag.activate(CLF, target)
             identifier = rfid_tag.identifier.hex()
             return identifier
 
@@ -68,10 +55,7 @@ def cropImage(image):
 
 
 def insertUser(first_name, last_name, rfid, picture):
-    cv2.imwrite("tmp.jpg", picture)
-
-    with open("tmp.jpg", "rb") as img:
-        img_encoded = "".join([hex(x)[2:].zfill(2) for x in img.read()])
+    img_encoded = encodeImage(picture)
 
     response = requests.post(url=f'{API_URL}/user/add',
                              json={"first name": first_name, "last name": last_name, "rfid": rfid, "picture": img_encoded})
@@ -124,8 +108,13 @@ def main():
 
 if __name__ == '__main__':
     # Init RFID
-    clf = nfc.ContactlessFrontend()
-    assert clf.open("usb:04e6:5591") is True
+    CLF = None
+    try:
+        CLF = nfc.ContactlessFrontend()
+        assert CLF.open('usb:04e6:5591') is True
+    except:
+        CLF = None
+        print("USB RFID detector not found")
 
     # Init face detection
     model = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
