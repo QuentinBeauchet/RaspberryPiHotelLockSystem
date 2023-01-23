@@ -8,6 +8,7 @@ import nfc
 import sys
 import re
 from nfc.clf import RemoteTarget
+import RPi.GPIO as GPIO
 
 
 def recognition(encoded_image):
@@ -92,6 +93,7 @@ def get_admins_tags():
 
 def open_door():
     print("Opens door")
+    door_open_sound()
     if ARDUINO_SERIAL is not None:
         ARDUINO_SERIAL.write(b"1")      # Send Signal to open the door
         while ARDUINO_SERIAL.inWaiting() == 0:
@@ -99,6 +101,38 @@ def open_door():
         data = ARDUINO_SERIAL.readline().decode()
         if (data[:-1] == "0"):
             print("Door Locked")
+            door_close_sound()
+
+
+def door_open_sound():
+    GPIO.output(7, GPIO.HIGH)
+    time.sleep(0.7)
+    GPIO.output(7, GPIO.LOW)
+
+    
+    
+def door_close_sound():
+    GPIO.output(7, GPIO.HIGH)
+    time.sleep(0.2)
+    GPIO.output(7, GPIO.LOW)
+    time.sleep(0.02)
+    GPIO.output(7, GPIO.HIGH)
+    time.sleep(0.2)
+    GPIO.output(7, GPIO.LOW)
+    
+    
+def no_match_found_sound():
+    GPIO.output(7, GPIO.HIGH)
+    time.sleep(0.2)
+    GPIO.output(7, GPIO.LOW)
+    time.sleep(0.02)
+    GPIO.output(7, GPIO.HIGH)
+    time.sleep(0.2)
+    GPIO.output(7, GPIO.LOW)
+    time.sleep(0.02)
+    GPIO.output(7, GPIO.HIGH)
+    time.sleep(0.2)
+    GPIO.output(7, GPIO.LOW)
 
 
 def run_door_multifactor_authentication():
@@ -132,6 +166,7 @@ def run_door_multifactor_authentication():
             if user is None:
                 print(
                     f'{COLOR["RED"]}=> No Match Found in the database{COLOR["RESET"]}')
+                    no_match_found_sound()
             else:
                 encodings = user["picture"]
                 if encodings is not None:
@@ -144,6 +179,7 @@ def run_door_multifactor_authentication():
                     else:
                         print(
                             f'{COLOR["RED"]}=> User does not match{COLOR["RESET"]}')
+                            no_match_found_sound()
         print("Waiting for RFID contact")
 
 
@@ -170,6 +206,10 @@ if __name__ == '__main__':
     except:
         CLF = None
         print("USB RFID detector not found")
+
+    # Adding Buzzer indicator
+    GPIO.setmode(GPIO.BOARD)			
+    GPIO.setup(7,GPIO.OUT)
 
     DOOR_ID = sys.argv[1]
     API_URL = "http://localhost:3000/api"
