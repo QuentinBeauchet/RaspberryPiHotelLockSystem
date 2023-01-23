@@ -105,33 +105,33 @@ def open_door():
 
 
 def door_open_sound():
-    GPIO.output(7, GPIO.HIGH)
+    GPIO.output(BUZZER_PIN, GPIO.HIGH)
     time.sleep(0.7)
-    GPIO.output(7, GPIO.LOW)
+    GPIO.output(BUZZER_PIN, GPIO.LOW)
 
        
 def door_close_sound():
-    GPIO.output(7, GPIO.HIGH)
+    GPIO.output(BUZZER_PIN, GPIO.HIGH)
     time.sleep(0.2)
-    GPIO.output(7, GPIO.LOW)
+    GPIO.output(BUZZER_PIN, GPIO.LOW)
     time.sleep(0.02)
-    GPIO.output(7, GPIO.HIGH)
+    GPIO.output(BUZZER_PIN, GPIO.HIGH)
     time.sleep(0.2)
-    GPIO.output(7, GPIO.LOW)
+    GPIO.output(BUZZER_PIN, GPIO.LOW)
     
     
 def no_match_found_sound():
-    GPIO.output(7, GPIO.HIGH)
+    GPIO.output(BUZZER_PIN, GPIO.HIGH)
     time.sleep(0.2)
-    GPIO.output(7, GPIO.LOW)
+    GPIO.output(BUZZER_PIN, GPIO.LOW)
     time.sleep(0.02)
-    GPIO.output(7, GPIO.HIGH)
+    GPIO.output(BUZZER_PIN, GPIO.HIGH)
     time.sleep(0.2)
-    GPIO.output(7, GPIO.LOW)
+    GPIO.output(BUZZER_PIN, GPIO.LOW)
     time.sleep(0.02)
-    GPIO.output(7, GPIO.HIGH)
+    GPIO.output(BUZZER_PIN, GPIO.HIGH)
     time.sleep(0.2)
-    GPIO.output(7, GPIO.LOW)
+    GPIO.output(BUZZER_PIN, GPIO.LOW)
 
 
 def run_door_multifactor_authentication():
@@ -207,8 +207,9 @@ if __name__ == '__main__':
         print("USB RFID detector not found")
 
     # Adding Buzzer indicator
+    BUZZER_PIN = 7
     GPIO.setmode(GPIO.BOARD)			
-    GPIO.setup(7,GPIO.OUT)
+    GPIO.setup(BUZZER_PIN,GPIO.OUT)
 
     DOOR_ID = sys.argv[1]
     API_URL = "http://localhost:3000/api"
