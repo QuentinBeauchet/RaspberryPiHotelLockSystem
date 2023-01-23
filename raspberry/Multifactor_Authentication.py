@@ -95,43 +95,21 @@ def open_door():
     print("Opens door")
     if ARDUINO_SERIAL is not None:
         ARDUINO_SERIAL.write(b"1")      # Send Signal to open the door
-        door_open_sound()
+        buzzer(1, 0.7, 0)
         while ARDUINO_SERIAL.inWaiting() == 0:
             pass                        # Wait 5 seconds for the door to close
         data = ARDUINO_SERIAL.readline().decode()
         if (data[:-1] == "0"):
             print("Door Locked")
-            door_close_sound()
+            buzzer(2, 0.2, 0.02)
 
 
-def door_open_sound():
-    GPIO.output(BUZZER_PIN, GPIO.HIGH)
-    time.sleep(0.7)
-    GPIO.output(BUZZER_PIN, GPIO.LOW)
-
-       
-def door_close_sound():
-    GPIO.output(BUZZER_PIN, GPIO.HIGH)
-    time.sleep(0.2)
-    GPIO.output(BUZZER_PIN, GPIO.LOW)
-    time.sleep(0.02)
-    GPIO.output(BUZZER_PIN, GPIO.HIGH)
-    time.sleep(0.2)
-    GPIO.output(BUZZER_PIN, GPIO.LOW)
-    
-    
-def no_match_found_sound():
-    GPIO.output(BUZZER_PIN, GPIO.HIGH)
-    time.sleep(0.2)
-    GPIO.output(BUZZER_PIN, GPIO.LOW)
-    time.sleep(0.02)
-    GPIO.output(BUZZER_PIN, GPIO.HIGH)
-    time.sleep(0.2)
-    GPIO.output(BUZZER_PIN, GPIO.LOW)
-    time.sleep(0.02)
-    GPIO.output(BUZZER_PIN, GPIO.HIGH)
-    time.sleep(0.2)
-    GPIO.output(BUZZER_PIN, GPIO.LOW)
+def buzzer(buzz, buzz_time, wait_time):
+    for i in range(buzz):
+        GPIO.output(BUZZER_PIN, GPIO.HIGH)
+        time.sleep(buzz_time)
+        GPIO.output(BUZZER_PIN, GPIO.LOW)
+        time.sleep(wait_time)
 
 
 def run_door_multifactor_authentication():
@@ -165,7 +143,7 @@ def run_door_multifactor_authentication():
             if user is None:
                 print(
                     f'{COLOR["RED"]}=> No Match Found in the database{COLOR["RESET"]}')
-                    no_match_found_sound()
+                    buzzer(3, 0.2, 0.02)    # no_match_found_sound
             else:
                 encodings = user["picture"]
                 if encodings is not None:
@@ -178,7 +156,7 @@ def run_door_multifactor_authentication():
                     else:
                         print(
                             f'{COLOR["RED"]}=> User does not match{COLOR["RESET"]}')
-                            no_match_found_sound()
+                            buzzer(3, 0.2, 0.02)    # no_match_found_sound
         print("Waiting for RFID contact")
 
 
