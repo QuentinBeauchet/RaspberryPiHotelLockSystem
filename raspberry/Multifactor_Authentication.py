@@ -109,8 +109,7 @@ def door_open_sound():
     time.sleep(0.7)
     GPIO.output(7, GPIO.LOW)
 
-    
-    
+       
 def door_close_sound():
     GPIO.output(7, GPIO.HIGH)
     time.sleep(0.2)
