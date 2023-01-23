@@ -93,9 +93,9 @@ def get_admins_tags():
 
 def open_door():
     print("Opens door")
-    door_open_sound()
     if ARDUINO_SERIAL is not None:
         ARDUINO_SERIAL.write(b"1")      # Send Signal to open the door
+        door_open_sound()
         while ARDUINO_SERIAL.inWaiting() == 0:
             pass                        # Wait 5 seconds for the door to close
         data = ARDUINO_SERIAL.readline().decode()
