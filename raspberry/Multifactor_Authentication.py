@@ -6,7 +6,6 @@ import face_recognition
 import requests
 import nfc
 import sys
-import re
 from nfc.clf import RemoteTarget
 
 
