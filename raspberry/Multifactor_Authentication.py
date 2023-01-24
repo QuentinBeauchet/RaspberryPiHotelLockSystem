@@ -7,6 +7,7 @@ import requests
 import nfc
 import sys
 from nfc.clf import RemoteTarget
+import RPi.GPIO as GPIO
 
 
 def recognition(encoded_image):
@@ -93,11 +94,21 @@ def open_door():
     print("Opens door")
     if ARDUINO_SERIAL is not None:
         ARDUINO_SERIAL.write(b"1")      # Send Signal to open the door
+        buzzer(1, 0.7, 0)
         while ARDUINO_SERIAL.inWaiting() == 0:
             pass                        # Wait 5 seconds for the door to close
         data = ARDUINO_SERIAL.readline().decode()
         if (data[:-1] == "0"):
             print("Door Locked")
+            buzzer(2, 0.2, 0.02)
+
+
+def buzzer(buzz, buzz_time, wait_time):
+    for i in range(buzz):
+        GPIO.output(BUZZER_PIN, GPIO.HIGH)
+        time.sleep(buzz_time)
+        GPIO.output(BUZZER_PIN, GPIO.LOW)
+        time.sleep(wait_time)
 
 
 def run_door_multifactor_authentication():
@@ -131,6 +142,7 @@ def run_door_multifactor_authentication():
             if user is None:
                 print(
                     f'{COLOR["RED"]}=> No Match Found in the database{COLOR["RESET"]}')
+                    buzzer(3, 0.2, 0.02)    # no_match_found_sound
             else:
                 encodings = user["picture"]
                 if encodings is not None:
@@ -143,6 +155,7 @@ def run_door_multifactor_authentication():
                     else:
                         print(
                             f'{COLOR["RED"]}=> User does not match{COLOR["RESET"]}')
+                            buzzer(3, 0.2, 0.02)    # no_match_found_sound
         print("Waiting for RFID contact")
 
 
@@ -169,6 +182,11 @@ if __name__ == '__main__':
     except:
         CLF = None
         print("USB RFID detector not found")
+
+    # Adding Buzzer indicator
+    BUZZER_PIN = 7
+    GPIO.setmode(GPIO.BOARD)			
+    GPIO.setup(BUZZER_PIN,GPIO.OUT)
 
     DOOR_ID = sys.argv[1]
     API_URL = "http://localhost:3000/api"
